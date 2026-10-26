@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+          cache: true
+          cache-dependency-path: "**/*.csproj"
+
+      - name: Build
+        run: dotnet build Ranks_RevealAllRanks.csproj -c Release -warnaserror
+
+      # The release workflow only runs on [release] commits, so without this the packaging
+      # target is never exercised until the one push that depends on it.
+      - name: Publish
+        run: dotnet publish Ranks_RevealAllRanks.csproj -c Release
+
+      # Same script the release workflow's assumptions rest on, so a drifted changelog
+      # section or SwiftlyS2 badge fails here rather than on the release push.
+      - name: Check release inputs
+        run: bash .github/check-release-inputs.sh
